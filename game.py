@@ -35,6 +35,7 @@ class Tetris:
             while True:
                 command = input()
                 if command == "rotate":
+<<<<<<< HEAD
                     self.down()
                     self.rotate()
                 if command == "right":
@@ -42,6 +43,12 @@ class Tetris:
                     self.right()
                 if command == "left":
                     self.down()
+=======
+                    self.rotate()
+                if command == "right":
+                    self.right()
+                if command == "left":
+>>>>>>> bd98493b5fb638e8f346c4af8fb4acf417de6c41
                     self.left()
                 if command == "down":
                     self.down()
@@ -72,14 +79,26 @@ class Tetris:
                             for pos in self.letter_dict[self.letter]]
 
     def rotate(self):
+<<<<<<< HEAD
+=======
+        self.down()
+>>>>>>> bd98493b5fb638e8f346c4af8fb4acf417de6c41
         self.rotation += 1
         self.rotation = self.rotation % len(self.letter_vals)
 
     def right(self):
+<<<<<<< HEAD
+=======
+        self.down()
+>>>>>>> bd98493b5fb638e8f346c4af8fb4acf417de6c41
         self.letter_vals = [[((x // self.base) * self.cols) + (((x + 1) % self.base) % self.cols) for x in pos]
                             for pos in self.letter_vals]
 
     def left(self):
+<<<<<<< HEAD
+=======
+        self.down()
+>>>>>>> bd98493b5fb638e8f346c4af8fb4acf417de6c41
         self.letter_vals = [[((x // self.base) * self.cols) + (((x - 1 + self.base) % self.base) % self.cols) for x in pos]
                             for pos in self.letter_vals]
 
