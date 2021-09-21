@@ -11,7 +11,6 @@ letter_dict["T"] = [[4, 14, 24, 15], [4, 13, 14, 15], [5, 15, 25, 14], [4, 5, 6,
 letter_dict["Z"] = [[4, 5, 15, 16], [5, 15, 14, 24]]
 
 
-
 class Piece:
     def __init__(self, letter):
         self.letter = letter
@@ -68,13 +67,11 @@ class Piece:
             self.atright = False
 
 
-
 class Grid:
     def __init__(self, values):
         self.values = values
         self.rows = len(values)
         self.cols = len(values[0])
-        # self.values = np.array([["-"] * ncols] * nrows)
         self.bottom = np.sum(values == "-", axis=0)
         self.set_bottom()
 
@@ -90,10 +87,12 @@ class Grid:
 
     def check_lines(self):
         available = np.where(np.sum(self.values == '0', axis=1) < self.cols)[0]
+
+    def remove_lines(self):
+        available = np.where(np.sum(self.values == '0', axis=1) < self.cols)[0]
         nfull = self.rows - len(available)
         self.values[nfull:, :] = self.values[available, :]
         self.values[:nfull, :] = np.full((nfull, self.cols), "-")
-
 
 
 class Tetris:
@@ -111,52 +110,47 @@ class Tetris:
             self.piece = Piece("O")
         self.piece.adjust_letter(10, self.cols)
 
-
-
-
     def start(self):
         temp_grid = Grid(self.grid.values.copy())
         temp_grid.print()
 
         while True:
             command = input()
-
-            if command == "piece":
+            if command == "exit":
+                break
+            elif command == "piece":
                 if not self.piece:
                     self.choose_piece()
-                else:
-                    if self.piece.atbottom:
-                        self.choose_piece()
+            elif command == "break":
+                self.grid.remove_lines()
 
             if self.piece:
                 if command == "rotate":
                     self.piece.rotate()
                     self.piece.down(self.grid)
-                if command == "right":
+                elif command == "right":
                     self.piece.right(self.grid)
                     self.piece.down(self.grid)
-                if command == "left":
+                elif command == "left":
                     self.piece.left(self.grid)
                     self.piece.down(self.grid)
-                if command == "down":
+                elif command == "down":
                     self.piece.down(self.grid)
-                if command == "exit":
-                    break
 
                 self.piece.check_edges(self.grid)
-
                 temp_grid = Grid(self.grid.values.copy())
                 temp_grid.add_letter(self.piece)
-                if not self.piece.atbottom:
-                    temp_grid.print()
-                else:
+                temp_grid.print()
+
+                if self.piece.atbottom:
                     self.grid = Grid(temp_grid.values.copy())
-                    self.grid.check_lines()
-                    self.grid.set_bottom()
-                    self.grid.print()
-                    if self.is_game_over():
-                        print("Game Over!")
-                        break
+                    self.piece = None
+            else:
+                self.grid.set_bottom()
+                self.grid.print()
+                if self.is_game_over():
+                    print("Game Over!")
+                    break
 
     def is_game_over(self):
         return any(self.grid.bottom == 0)
@@ -165,7 +159,3 @@ class Tetris:
 ncols, nrows = (int(x) for x in input().split())
 grid = Grid(np.full((nrows, ncols), "-"))
 Tetris(grid).start()
-
-
-
-
