@@ -10,6 +10,8 @@ letter_dict["S"] = [[5, 4, 14, 13], [4, 14, 15, 25]]
 letter_dict["T"] = [[4, 14, 24, 15], [4, 13, 14, 15], [5, 15, 25, 14], [4, 5, 6, 15]]
 letter_dict["Z"] = [[4, 5, 15, 16], [5, 15, 14, 24]]
 
+
+
 class Piece:
     def __init__(self, letter):
         self.letter = letter
@@ -35,32 +37,46 @@ class Piece:
         if not self.atbottom:
             self.values = [[(((x + grid.cols) // grid.cols) * grid.cols) + ((x % grid.cols) % grid.cols) for x in pos]
                                 for pos in self.values]
-            # Check if at bottom
-            if any((x // grid.cols) + 1 == grid.rows for x in self.get_value()):
-                self.atbottom = True
-                self.atright = True
-                self.atleft = True
 
     def right(self, grid):
         if not self.atright:
             self.values = [[((x // grid.cols) * grid.cols) + (((x + 1) % grid.cols) % grid.cols) for x in pos] for pos in self.values]
-            # Check if at right
-            self.atright = any((x % grid.cols) + 1 == grid.cols for x in self.get_value())
-            self.atleft = False
+            if not self.atbottom:
+                self.atleft = False
 
     def left(self, grid):
         if not self.atleft:
             self.values = [[((x // grid.cols) * grid.cols) + (((x - 1 + grid.cols) % grid.cols) % grid.cols) for x in pos] for pos in self.values]
-            # Check if at left
-            self.atleft = any(x % grid.cols == 0 for x in self.get_value())
+            if not self.atbottom:
+                self.atright = False
+
+    def check_edges(self, grid):
+        # Check if at bottom
+        if not self.atbottom and any((x // grid.cols) + 1 >= grid.bottom[x % grid.cols] for x in self.get_value()):
+            self.atbottom = True
+            self.atright = True
+            self.atleft = True
+
+        # Check if at right
+        if not self.atright and any((x % grid.cols) + 1 == grid.cols for x in self.get_value()):
+            self.atright = True
+            self.atleft = False
+
+        # Check if at left
+        if not self.atleft and any(x % grid.cols == 0 for x in self.get_value()):
+            self.atleft = True
             self.atright = False
 
 
+
 class Grid:
-    def __init__(self, nrows, ncols):
-        self.rows = nrows
-        self.cols = ncols
-        self.values = np.array([["-"] * ncols] * nrows)
+    def __init__(self, values):
+        self.values = values
+        self.rows = len(values)
+        self.cols = len(values[0])
+        # self.values = np.array([["-"] * ncols] * nrows)
+        self.bottom = np.sum(values == "-", axis=0)
+        self.set_bottom()
 
     def add_letter(self, letter):
         for point in letter.get_value():
@@ -69,57 +85,86 @@ class Grid:
     def print(self):
         print("\n".join(" ".join(x) for x in self.values), end="\n\n")
 
+    def set_bottom(self):
+        self.bottom = np.sum(self.values == "-", axis=0)
+
+    def check_lines(self):
+        available = np.where(np.sum(self.values == '0', axis=1) < self.cols)[0]
+        nfull = self.rows - len(available)
+        self.values[nfull:, :] = self.values[available, :]
+        self.values[:nfull, :] = np.full((nfull, self.cols), "-")
+
+
+
 class Tetris:
-    def __init__(self, grid, piece):
+    def __init__(self, grid):
         self.rows = grid.rows
         self.cols = grid.cols
         self.grid = grid
-        self.piece = piece
+        self.piece = None
+
+    def choose_piece(self):
+        letter = input()
+        if letter in letter_dict:
+            self.piece = Piece(letter)
+        else:
+            self.piece = Piece("O")
+        self.piece.adjust_letter(10, self.cols)
+
+
+
 
     def start(self):
-        self.grid.print()
-        self.grid.add_letter(self.piece)
-        self.grid.print()
+        temp_grid = Grid(self.grid.values.copy())
+        temp_grid.print()
 
         while True:
             command = input()
 
-            if command == "rotate":
-                self.piece.rotate()
-            if command == "right":
-                self.piece.right(self.grid)
-            if command == "left":
-                self.piece.left(self.grid)
-            if command == "down":
-                pass
-            if command == "exit":
-                break
+            if command == "piece":
+                if not self.piece:
+                    self.choose_piece()
+                else:
+                    if self.piece.atbottom:
+                        self.choose_piece()
 
-            self.piece.down(self.grid)
-            self.grid = Grid(self.rows, self.cols)
-            self.grid.add_letter(self.piece)
-            self.grid.print()
+            if self.piece:
+                if command == "rotate":
+                    self.piece.rotate()
+                    self.piece.down(self.grid)
+                if command == "right":
+                    self.piece.right(self.grid)
+                    self.piece.down(self.grid)
+                if command == "left":
+                    self.piece.left(self.grid)
+                    self.piece.down(self.grid)
+                if command == "down":
+                    self.piece.down(self.grid)
+                if command == "exit":
+                    break
+
+                self.piece.check_edges(self.grid)
+
+                temp_grid = Grid(self.grid.values.copy())
+                temp_grid.add_letter(self.piece)
+                if not self.piece.atbottom:
+                    temp_grid.print()
+                else:
+                    self.grid = Grid(temp_grid.values.copy())
+                    self.grid.check_lines()
+                    self.grid.set_bottom()
+                    self.grid.print()
+                    if self.is_game_over():
+                        print("Game Over!")
+                        break
+
+    def is_game_over(self):
+        return any(self.grid.bottom == 0)
 
 
-def start_game():
-    letter = input()
-    if letter in letter_dict:
-        piece = Piece(letter)
-    else:
-        piece = Piece("O")
-
-    dimensions = input()
-    ncols, nrows = (int(x) for x in dimensions.split())
-
-    piece.adjust_letter(10, ncols)
-
-    grid = Grid(nrows, ncols)
-
-    myTetris = Tetris(grid, piece)
-    myTetris.start()
-
-
-start_game()
+ncols, nrows = (int(x) for x in input().split())
+grid = Grid(np.full((nrows, ncols), "-"))
+Tetris(grid).start()
 
 
 
